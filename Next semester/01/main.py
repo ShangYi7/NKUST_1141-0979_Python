@@ -2,38 +2,39 @@ import tkinter as tk
 
 n = int(input("請輸入非負整數 N："))
 
+# --- 1. 計算帕斯卡三角形的數字 ---
 rows = []
 for i in range(n + 1):
     row = []
     for j in range(i + 1):
+        # 邊緣的數字都是 1
         if j == 0 or j == i:
             row.append(1)
+        # 中間的數字 = 上一層的左上角 + 上一層的右上角
         else:
             row.append(rows[i - 1][j - 1] + rows[i - 1][j])
     rows.append(row)
 
-max_value = rows[-1][len(rows[-1]) // 2] if rows else 1
-cell_width = len(str(max_value)) + 2
-
+# --- 2. 建立圖形介面 (GUI) ---
 window = tk.Tk()
-window.title("Pascal Triangle")
-window.geometry("1000x750+10+10")
+window.title("帕斯卡三角形")
+window.geometry("800x600")  # 設定視窗大小
 
-frame = tk.Frame(window, padx=20, pady=20)
-frame.pack(expand=True)
+# --- 3. 把數字畫到畫面上 ---
+for row in rows:
+    # 每一層建立一個「框架」(Frame)，預設 pack() 會自動將它置中
+    row_frame = tk.Frame(window)
+    row_frame.pack(pady=2)
 
-# 總欄數固定為 2N+1，將每層數字放在對稱欄位上
-total_cols = 2 * n + 1
-for c in range(total_cols):
-    frame.grid_columnconfigure(c, weight=1)
-
-for i, row in enumerate(rows):
-    for j, value in enumerate(row):
-        col = n - i + 2 * j
-        tk.Label(
-            frame,
-            text=str(value).center(cell_width),
-            font=("Consolas", 14),
-        ).grid(row=i, column=col, padx=2, pady=2)
+    for value in row:
+        # 把每個數字放進「標籤」(Label) 中
+        lbl = tk.Label(
+            row_frame,
+            text=str(value),
+            font=("Arial", 14),
+            width=4  # 設定固定寬度，讓數字排列更整齊
+        )
+        # 把標籤由左到右排進框架裡
+        lbl.pack(side="left", padx=2)
 
 window.mainloop()
