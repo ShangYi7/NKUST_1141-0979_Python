@@ -9,6 +9,7 @@ import calendar  # 日曆函數
 import datetime  # 計算日期和時間之間的差異
 
 while 1:
+    # 輸入日期字串與位移天數
     data = input().split()
     day = data[0]
     n = int(data[1])
@@ -19,7 +20,7 @@ while 1:
         calendar.isleap(year) == False and month == 2 and day == 29
     ):  # 判斷是否為閏年, 若不是閏年且日期為29，則跳出迴圈
         break
-    # calendar.weekday 可以回傳某年某月的某一天是星期幾 ( 星期一從 0 開始 )。
+    # calendar.weekday 可以回傳某年某月的某一天是星期幾 ( 星期一從 0 開始 )
     week = calendar.weekday(year, month, day)
     weeklist = [
         "Monday",
@@ -44,7 +45,7 @@ while 1:
         "November",
         "December",
     ]
-    # f-string 格式化輸出
+    # 第一段輸出：指定日期是星期幾
     print(
         f"The day of the week on {monthlist[month-1]} {day:02d}, {year} is {weeklist[week]}"
     )
@@ -55,11 +56,13 @@ while 1:
     new_day = current_date + datetime.timedelta(days=n)  # 計算新的日期
     week = calendar.weekday(new_day.year, new_day.month, new_day.day)
     if n < 0:
+        # n 是負數時，輸出 before 格式
         n = n + -n * 2
         print(
             f"The date before {n} days is {monthlist[new_day.month-1]} {new_day.day:02d}, {new_day.year}"
         )
     else:
+        # n 是正數或 0 時，輸出 after 格式
         print(
             f"The date after {n} days is {monthlist[new_day.month-1]} {new_day.day:02d}, {new_day.year}"
         )

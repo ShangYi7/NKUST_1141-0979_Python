@@ -4,17 +4,18 @@ from tkinter import messagebox
 
 class TicTacToe:
     def __init__(self, root):
+        # 視窗與遊戲狀態初始化
         self.root = root
         self.root.title("圓圈叉叉遊戲")
         self.root.geometry("400x500")
         self.root.resizable(False, False)
 
-        # 遊戲狀態
+        # 棋盤用 9 個空字串表示，索引 0-8 對應 3x3 方格
         self.board = [''] * 9  # 0-8 代表9個方格
         self.current_player = 'O'  # O 先手
         self.game_over = False
 
-        # 創建上方狀態標籤
+        # 上方狀態列，用來顯示輪到誰或比賽結果
         self.status_label = tk.Label(
             root,
             text="玩家 O 的回合",
@@ -25,11 +26,11 @@ class TicTacToe:
         )
         self.status_label.pack(fill=tk.X)
 
-        # 創建棋盤框架
+        # 棋盤框架，按鈕會放在這裡
         self.board_frame = tk.Frame(root, bg="black", padx=5, pady=5)
         self.board_frame.pack(pady=20)
 
-        # 創建按鈕
+        # 建立 3x3 棋盤按鈕，使用 lambda 綁定各自的格子索引
         self.buttons = []
         for i in range(9):
             btn = tk.Button(
@@ -47,11 +48,11 @@ class TicTacToe:
             btn.grid(row=row, column=col, padx=2, pady=2)
             self.buttons.append(btn)
 
-        # 創建按鈕框架
+        # 下方控制區，放重新開始按鈕
         bottom_frame = tk.Frame(root)
         bottom_frame.pack(pady=10)
 
-        # 重新開始按鈕
+        # 重新開始按鈕會把棋盤與狀態回復初始值
         restart_btn = tk.Button(
             bottom_frame,
             text="重新開始",
@@ -64,20 +65,21 @@ class TicTacToe:
         restart_btn.pack()
 
     def click_button(self, index):
-        """處理按鈕點擊"""
+        """處理玩家點擊棋盤格子的事件"""
         if self.game_over:
             messagebox.showwarning("遊戲結束", "遊戲已結束，請按重新開始")
             return
 
+        # 已經填過的格子不能重複下
         if self.board[index] != '':
             messagebox.showwarning("無效操作", "該方格已被佔用")
             return
 
-        # 更新棋盤和按鈕
+        # 將目前玩家標記寫入棋盤並鎖定按鈕
         self.board[index] = self.current_player
         self.buttons[index].config(text=self.current_player, state="disabled")
 
-        # 檢查勝負
+        # 先檢查是否已經連成三子
         if self.check_winner():
             self.game_over = True
             self.status_label.config(
@@ -87,20 +89,20 @@ class TicTacToe:
             self.disable_all_buttons()
             return
 
-        # 檢查平手
+        # 再檢查是否所有格子都被填滿
         if self.check_draw():
             self.game_over = True
             self.status_label.config(text="平手！", bg="lightcoral")
             self.disable_all_buttons()
             return
 
-        # 切換玩家
+        # 若還沒結束，輪到另一位玩家
         self.current_player = 'X' if self.current_player == 'O' else 'O'
         self.status_label.config(text=f"玩家 {self.current_player} 的回合")
 
     def check_winner(self):
-        """檢查是否有贏家"""
-        # 所有可能的勝利組合
+        """檢查目前玩家是否達成任一勝利條件"""
+        # 3 行、3 列、2 條對角線共 8 種勝利組合
         win_combinations = [
             [0, 1, 2],  # 第一行
             [3, 4, 5],  # 第二行
@@ -119,16 +121,16 @@ class TicTacToe:
         return False
 
     def check_draw(self):
-        """檢查是否平手"""
+        """當棋盤沒有空格時視為平手"""
         return all(cell != '' for cell in self.board)
 
     def disable_all_buttons(self):
-        """禁用所有按鈕"""
+        """比賽結束後，將所有格子鎖定"""
         for btn in self.buttons:
             btn.config(state="disabled")
 
     def restart_game(self):
-        """重新開始遊戲"""
+        """重設棋盤、玩家與狀態文字"""
         self.board = [''] * 9
         self.current_player = 'O'
         self.game_over = False
@@ -138,7 +140,7 @@ class TicTacToe:
             btn.config(text='', state="normal", bg="lightgray")
 
 
-# 主程式
+# 程式入口：建立視窗並啟動事件迴圈
 if __name__ == "__main__":
     windows = tk.Tk()
     game = TicTacToe(windows)

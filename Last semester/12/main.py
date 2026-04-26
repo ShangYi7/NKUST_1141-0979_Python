@@ -1,6 +1,7 @@
 # 讀取檔案資料
 customers = {}
 try:
+    # 從 input.txt 載入既有顧客資料，避免啟動後資料全空
     f = open('input.txt', 'r')
     lines = f.readlines()
     f.close()
@@ -16,6 +17,7 @@ while True:
     command = input()
     parts = command.split()
 
+    # 空輸入直接忽略，等待下一個指令
     if len(parts) == 0:
         continue
 
@@ -29,20 +31,22 @@ while True:
             print('Exist')
         else:
             customers[parts[1]] = [parts[2], parts[3], parts[4]]
-            # 寫入檔案
+            # 新增後立刻把整份資料重寫回檔案，確保內容同步
             f = open('input.txt', 'w')
             for id in customers:
-                f.write(id + ' ' + customers[id][0] + ' ' + customers[id][1] + ' ' + customers[id][2] + '\n')
+                f.write(id + ' ' + customers[id][0] + ' ' +
+                        customers[id][1] + ' ' + customers[id][2] + '\n')
             f.close()
 
     # 刪除顧客資料
     elif parts[0] == '#' and len(parts) >= 2:
         if parts[1] in customers:
             del customers[parts[1]]
-            # 寫入檔案
+            # 刪除後重寫檔案
             f = open('input.txt', 'w')
             for id in customers:
-                f.write(id + ' ' + customers[id][0] + ' ' + customers[id][1] + ' ' + customers[id][2] + '\n')
+                f.write(id + ' ' + customers[id][0] + ' ' +
+                        customers[id][1] + ' ' + customers[id][2] + '\n')
             f.close()
         else:
             print('None')
@@ -50,16 +54,18 @@ while True:
     # 更改顧客資料
     elif parts[0] == '!' and len(parts) >= 4:
         if parts[1] in customers:
+            # parts[2] 決定要更新哪一個欄位
             if parts[2] == '0':
                 customers[parts[1]][0] = parts[3]
             elif parts[2] == '1':
                 customers[parts[1]][1] = parts[3]
             elif parts[2] == '2':
                 customers[parts[1]][2] = parts[3]
-            # 寫入檔案
+            # 更新後同步回檔案
             f = open('input.txt', 'w')
             for id in customers:
-                f.write(id + ' ' + customers[id][0] + ' ' + customers[id][1] + ' ' + customers[id][2] + '\n')
+                f.write(id + ' ' + customers[id][0] + ' ' +
+                        customers[id][1] + ' ' + customers[id][2] + '\n')
             f.close()
         else:
             print('None')
@@ -67,6 +73,7 @@ while True:
     # 查詢顧客資料
     elif parts[0] == '$' and len(parts) >= 3:
         if parts[1] in customers:
+            # 依欄位編號輸出對應資料
             if parts[2] == '0':
                 print(customers[parts[1]][0])
             elif parts[2] == '1':

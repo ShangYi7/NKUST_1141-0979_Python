@@ -23,6 +23,7 @@ class RockPaperScissors:
         print("請輸入 10 組遊戲數據，每組兩個數字（1=剪刀, 2=石頭, 3=布）:")
         for i in range(10):
             try:
+                # 每一組都必須剛好有兩個 1~3 的整數
                 game_input = list(map(int, input().split()))
                 if len(game_input) != 2:
                     raise ValueError("每組必須包含兩個數字")
@@ -47,7 +48,7 @@ class RockPaperScissors:
         if player1 == player2:
             return self.TIE
 
-        # 使用字典映射來判斷勝負關係
+        # 使用字典把「某手勢會贏哪個手勢」整理成表格，讓判斷更簡潔
         win_conditions = {
             self.SCISSORS: self.PAPER,  # 剪刀勝布
             self.ROCK: self.SCISSORS,   # 石頭勝剪刀
@@ -77,6 +78,7 @@ class RockPaperScissors:
         if not self.games:
             return None
 
+        # 分別統計三種結果出現次數
         first_wins = 0
         second_wins = 0
         ties = 0
@@ -116,7 +118,7 @@ def main():
     print("Rock Paper Scissors Game - Advanced Version")
     print("=" * 50)
 
-    # 創建遊戲實例
+    # 建立遊戲物件並開始互動流程
     game = RockPaperScissors()
 
     # 讀取輸入
@@ -177,4 +179,3 @@ if __name__ == "__main__":
     else:
         print("無效選擇，執行完整版本")
         main()
-
