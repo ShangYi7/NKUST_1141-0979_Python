@@ -1,0 +1,10 @@
+apple,蘋果
+banana,香蕉
+cat,貓
+dog,狗
+elephant,大象
+tiger,老虎
+computer,電腦
+python,程式語言
+keyboard,鍵盤
+mouse,滑鼠
