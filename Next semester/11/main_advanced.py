@@ -1,235 +1,219 @@
 import tkinter as tk
 from tkinter import messagebox
+import os
 
-class CrudApp:
-    """
-    包含 CRUD 功能的學生資料表應用程式。
-    除了具備檢視功能外，另支援對 txt 檔案內容進行即時的更新、刪除與新增。
-    """
-    def __init__(self, root):
-        self.root = root
-        self.root.title("tk")
+# ==========================================
+# 1. 設定全域變數 (系統參數與狀態)
+# ==========================================
+data_file = "data.txt"    # 儲存學生資料的檔名
+default_gender = "男"     # 預設選取的性別
+
+data = []                 # 儲存從 txt 檔案讀取出來的所有學生資料 (二維陣列)
+current_idx = 0           # 記錄目前畫面上顯示的是第幾筆資料 (0 代表第一筆)
+entries = {}              # 用來集中管理畫面上的輸入框 (Entry)
+gender_var = None         # 單選按鈕變數
+
+# 標記目前是否處於「新增模式」
+is_adding = False
+
+
+# ==========================================
+# 2. 主要功能邏輯 (載入、存檔與顯示)
+# ==========================================
+def load_data():
+    """從 data.txt 讀取資料"""
+    global data
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, data_file)
+    data = []
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.strip().split(",")
+                if len(parts) == 6:
+                    data.append(parts)
+    except FileNotFoundError:
+        pass
+
+
+def save_data():
+    """將記憶體中的資料列即時寫入回 txt 檔案"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, data_file)
+    
+    with open(file_path, "w", encoding="utf-8") as f:
+        for record in data:
+            f.write(",".join(record) + "\n")
+
+
+def show_record():
+    """顯示指定索引位置的資料到畫面上"""
+    global is_adding
+    is_adding = False # 重置新增模式
+    
+    for e in entries.values():
+        e.delete(0, tk.END)
         
-        # ==========================================
-        # ⬇️⬇️⬇️ 遊戲參數設定區 (可隨意修改) ⬇️⬇️⬇️
-        # ==========================================
-        self.data_file = "data.txt"    # 儲存學生資料的檔名
-        self.default_gender = "男"     # 預設選取的性別
-        # ==========================================
-        # ⬆️⬆️⬆️ 遊戲參數設定區 (可隨意修改) ⬆️⬆️⬆️
-        # ==========================================
+    if not data:
+        gender_var.set(default_gender)
+        return
         
-        self.data = []
-        self.current_idx = 0
+    record = data[current_idx]
+    entries["學號"].insert(0, record[0])
+    entries["姓名"].insert(0, record[1])
+    gender_var.set(record[2])
+    entries["系所"].insert(0, record[3])
+    entries["地址"].insert(0, record[4])
+    entries["電話"].insert(0, record[5])
+
+
+# ==========================================
+# 3. 增刪改查 (CRUD) 相關功能
+# ==========================================
+def prev_record():
+    global current_idx
+    if current_idx > 0 and data:
+        current_idx -= 1
+        show_record()
+
+
+def next_record():
+    global current_idx
+    if current_idx < len(data) - 1 and data:
+        current_idx += 1
+        show_record()
+
+
+def get_current_input():
+    return [
+        entries["學號"].get().strip(),
+        entries["姓名"].get().strip(),
+        gender_var.get(),
+        entries["系所"].get().strip(),
+        entries["地址"].get().strip(),
+        entries["電話"].get().strip()
+    ]
+
+
+def update_record():
+    global current_idx, is_adding
+    
+    new_record = get_current_input()
+    if not new_record[0]:
+        return
         
-        # 用於標記目前是否處於「準備新增一筆全新資料」的狀態
-        # 若為 True，則在點擊更新按鈕時，會將表單內容作為新資料附加至陣列尾端，而非覆蓋現有資料
-        self.is_adding = False
-        
-        self.load_data()
-        
-        # 字典容器：用於集中管理 Entry 元件，便於迴圈與名稱查詢
-        self.entries = {}
-        
-        # 建立 UI 版面配置 (延續作業 10 之樣式)
-        tk.Label(root, text="學號：").grid(row=0, column=0, padx=2, pady=2, sticky="e")
-        self.entries["學號"] = tk.Entry(root, width=25)
-        self.entries["學號"].grid(row=0, column=1, padx=2, pady=2, sticky="w")
-        
-        tk.Label(root, text="姓名：").grid(row=1, column=0, padx=2, pady=2, sticky="e")
-        self.entries["姓名"] = tk.Entry(root, width=25)
-        self.entries["姓名"].grid(row=1, column=1, padx=2, pady=2, sticky="w")
-        
-        self.gender_var = tk.StringVar(value=self.default_gender)
-        gender_frame = tk.Frame(root)
-        gender_frame.grid(row=2, column=0, columnspan=2, pady=2)
-        tk.Radiobutton(gender_frame, text="男", variable=self.gender_var, value="男").pack(side=tk.LEFT, padx=10)
-        tk.Radiobutton(gender_frame, text="女", variable=self.gender_var, value="女").pack(side=tk.LEFT, padx=10)
-        
-        tk.Label(root, text="系所：").grid(row=3, column=0, padx=2, pady=2, sticky="e")
-        self.entries["系所"] = tk.Entry(root, width=25)
-        self.entries["系所"].grid(row=3, column=1, padx=2, pady=2, sticky="w")
-        
-        tk.Label(root, text="地址：").grid(row=4, column=0, padx=2, pady=2, sticky="e")
-        self.entries["地址"] = tk.Entry(root, width=25)
-        self.entries["地址"].grid(row=4, column=1, padx=2, pady=2, sticky="w")
-        
-        tk.Label(root, text="電話：").grid(row=5, column=0, padx=2, pady=2, sticky="e")
-        self.entries["電話"] = tk.Entry(root, width=25)
-        self.entries["電話"].grid(row=5, column=1, padx=2, pady=2, sticky="w")
-                
-        # 底部控制按鈕區：包含切換與所有 CRUD 動作
-        btn_frame = tk.Frame(root)
-        btn_frame.grid(row=6, column=0, columnspan=2, pady=5)
-        
-        tk.Button(btn_frame, text="<<", command=self.prev_record).pack(side=tk.LEFT, padx=2)
-        tk.Button(btn_frame, text="更新", command=self.update_record).pack(side=tk.LEFT, padx=2)
-        tk.Button(btn_frame, text="刪除", command=self.delete_record).pack(side=tk.LEFT, padx=2)
-        tk.Button(btn_frame, text="新增", command=self.add_record).pack(side=tk.LEFT, padx=2)
-        # 進階版：加入搜尋按鈕
-        tk.Button(btn_frame, text="搜尋", command=self.search_record).pack(side=tk.LEFT, padx=2)
-        tk.Button(btn_frame, text=">>", command=self.next_record).pack(side=tk.LEFT, padx=2)
-        
-        # 啟動時立刻顯示第一筆資料
-        self.show_record()
-        
-    def load_data(self):
-        """
-        讀取外部 txt 檔案並將其存入記憶體中的 self.data 二維陣列。
-        使用腳本所在之絕對路徑，確保不同路徑啟動也能正確對應。
-        """
-        import os
-        self.script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.file_path = os.path.join(self.script_dir, self.data_file)
-        self.data = []
-        try:
-            with open(self.file_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    parts = line.strip().split(",")
-                    # 避免空行或不完整的資料破壞程式執行
-                    if len(parts) == 6:
-                        self.data.append(parts)
-        except FileNotFoundError:
-            pass
-            
-    def save_data(self):
-        """
-        將記憶體中的資料列即時覆寫寫入回 txt 檔案。
-        此為所有增刪改操作的最後一步，以確保檔案維持最新狀態。
-        """
-        with open(self.file_path, "w", encoding="utf-8") as f:
-            for record in self.data:
-                f.write(",".join(record) + "\n")
-                
-    def show_record(self):
-        """
-        顯示指定索引位置的資料到畫面上。
-        同時會自動重置「新增模式」狀態，避免使用者切換資料後誤把原本的覆蓋動作變成新增。
-        """
-        self.is_adding = False
-        # 清除目前畫面上所有輸入框舊有內容
-        for e in self.entries.values():
-            e.delete(0, tk.END)
-            
-        # 若資料表為空，則留空畫面並結束函式
-        if not self.data:
-            self.gender_var.set(self.default_gender)
-            return
-            
-        # 依序填入欄位值
-        record = self.data[self.current_idx]
-        self.entries["學號"].insert(0, record[0])
-        self.entries["姓名"].insert(0, record[1])
-        self.gender_var.set(record[2])
-        self.entries["系所"].insert(0, record[3])
-        self.entries["地址"].insert(0, record[4])
-        self.entries["電話"].insert(0, record[5])
-        
-    def prev_record(self):
-        # 切換上一筆（防止出界處理）
-        if self.current_idx > 0 and self.data:
-            self.current_idx -= 1
-            self.show_record()
-            
-    def next_record(self):
-        # 切換下一筆（防止出界處理）
-        if self.current_idx < len(self.data) - 1 and self.data:
-            self.current_idx += 1
-            self.show_record()
-            
-    def get_current_input(self):
-        """
-        輔助函式：統整收集目前畫面上所有的 Entry 及 Radiobutton 數值，並組成陣列回傳。
-        """
-        return [
-            self.entries["學號"].get().strip(),
-            self.entries["姓名"].get().strip(),
-            self.gender_var.get(),
-            self.entries["系所"].get().strip(),
-            self.entries["地址"].get().strip(),
-            self.entries["電話"].get().strip()
-        ]
-            
-    def update_record(self):
-        """
-        「更新」按鈕邏輯。
-        根據 is_adding 的布林值來決定是：
-        1. True -> 新增一筆全新資料並附加在最後。
-        2. False -> 直接替換目前 self.current_idx 上的原有資料。
-        """
-        new_record = self.get_current_input()
-        # 基礎欄位驗證：至少需輸入學號
-        if not new_record[0]:
-            return
-            
-        if self.is_adding:
-            # 進階版：檢查學號是否已經存在
-            for record in self.data:
-                if record[0] == new_record[0]:
-                    from tkinter import messagebox
-                    messagebox.showerror("錯誤", "學號已存在！無法新增重複的學生。")
-                    return
-                    
-            # 新增邏輯：加入陣列尾端，並將索引切換至該筆最新資料
-            self.data.append(new_record)
-            self.current_idx = len(self.data) - 1
-            self.is_adding = False
-        else:
-            # 覆蓋舊資料邏輯
-            if not self.data: return
-            self.data[self.current_idx] = new_record
-            
-        # 同步更新至檔案，並重整介面
-        self.save_data()
-        self.show_record()
-        
-    def delete_record(self):
-        """
-        「刪除」按鈕邏輯。
-        移除目前索引的資料列，並自動判斷下一筆該顯示的索引位置（例如若刪除最後一筆，則退回上一筆）。
-        """
-        if not self.data: return
-        del self.data[self.current_idx]
-        
-        # 若刪除了最後一筆資料，將索引往後退一格以防止陣列出界
-        if self.current_idx >= len(self.data) and self.current_idx > 0:
-            self.current_idx -= 1
-            
-        self.save_data()
-        self.show_record()
-            
-    def add_record(self):
-        """
-        「新增」按鈕邏輯。
-        本身不會將資料寫入檔案，僅負責將介面清空，並設定 is_adding 旗標，
-        待使用者輸入完畢按下「更新」時才會正式儲存。
-        """
-        self.is_adding = True
-        for e in self.entries.values():
-            e.delete(0, tk.END)
-        self.gender_var.set(self.default_gender)
-        
-    def search_record(self):
-        """
-        進階版：搜尋按鈕邏輯。
-        比對所有資料中的學號，若找到則切換索引並顯示，找不到則跳出提示。
-        """
-        target_id = self.entries["學號"].get().strip()
-        if not target_id:
-            from tkinter import messagebox
-            messagebox.showwarning("警告", "請輸入要搜尋的學號！")
-            return
-            
-        for i, record in enumerate(self.data):
-            if record[0] == target_id:
-                self.current_idx = i
-                self.show_record()
+    if is_adding:
+        # 進階版：檢查學號是否已經存在，防止重複新增
+        for record in data:
+            if record[0] == new_record[0]:
+                messagebox.showerror("錯誤", "學號已存在！無法新增重複的學生。")
                 return
                 
-        from tkinter import messagebox
-        messagebox.showinfo("提示", "找不到此學號")
+        data.append(new_record)
+        current_idx = len(data) - 1
+        is_adding = False
+    else:
+        if not data: return
+        data[current_idx] = new_record
+        
+    save_data()
+    show_record()
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = CrudApp(root)
-    root.mainloop()
+
+def delete_record():
+    global current_idx
+    if not data: return
+        
+    del data[current_idx]
+    
+    if current_idx >= len(data) and current_idx > 0:
+        current_idx -= 1
+        
+    save_data()
+    show_record()
+
+
+def add_record():
+    global is_adding
+    is_adding = True
+    for e in entries.values():
+        e.delete(0, tk.END)
+    gender_var.set(default_gender)
+
+
+def search_record():
+    """
+    【進階版新增功能】搜尋邏輯：
+    比對所有資料中的學號，若找到則切換顯示該筆，找不到則跳出提示。
+    """
+    global current_idx
+    
+    target_id = entries["學號"].get().strip()
+    if not target_id:
+        messagebox.showwarning("警告", "請輸入要搜尋的學號！")
+        return
+        
+    # 用 enumerate 同時取得索引 (i) 和資料 (record)
+    for i, record in enumerate(data):
+        if record[0] == target_id:
+            current_idx = i
+            show_record()
+            return
+            
+    # 如果迴圈跑完都沒找到，跳出提示
+    messagebox.showinfo("提示", "找不到此學號")
+
+
+# ==========================================
+# 4. 建立視窗與畫面配置 (GUI)
+# ==========================================
+root = tk.Tk()
+root.title("學生資料表 (進階版：防呆與搜尋)")
+
+gender_var = tk.StringVar(value=default_gender)
+
+# -- 建立所有的輸入框與標籤 --
+tk.Label(root, text="學號：").grid(row=0, column=0, padx=2, pady=2, sticky="e")
+entries["學號"] = tk.Entry(root, width=25)
+entries["學號"].grid(row=0, column=1, padx=2, pady=2, sticky="w")
+
+tk.Label(root, text="姓名：").grid(row=1, column=0, padx=2, pady=2, sticky="e")
+entries["姓名"] = tk.Entry(root, width=25)
+entries["姓名"].grid(row=1, column=1, padx=2, pady=2, sticky="w")
+
+gender_frame = tk.Frame(root)
+gender_frame.grid(row=2, column=0, columnspan=2, pady=2)
+tk.Radiobutton(gender_frame, text="男", variable=gender_var, value="男").pack(side=tk.LEFT, padx=10)
+tk.Radiobutton(gender_frame, text="女", variable=gender_var, value="女").pack(side=tk.LEFT, padx=10)
+
+tk.Label(root, text="系所：").grid(row=3, column=0, padx=2, pady=2, sticky="e")
+entries["系所"] = tk.Entry(root, width=25)
+entries["系所"].grid(row=3, column=1, padx=2, pady=2, sticky="w")
+
+tk.Label(root, text="地址：").grid(row=4, column=0, padx=2, pady=2, sticky="e")
+entries["地址"] = tk.Entry(root, width=25)
+entries["地址"].grid(row=4, column=1, padx=2, pady=2, sticky="w")
+
+tk.Label(root, text="電話：").grid(row=5, column=0, padx=2, pady=2, sticky="e")
+entries["電話"] = tk.Entry(root, width=25)
+entries["電話"].grid(row=5, column=1, padx=2, pady=2, sticky="w")
+        
+# -- 建立下方的所有控制按鈕 --
+btn_frame = tk.Frame(root)
+btn_frame.grid(row=6, column=0, columnspan=2, pady=5)
+
+tk.Button(btn_frame, text="<<", command=prev_record).pack(side=tk.LEFT, padx=2)
+tk.Button(btn_frame, text="更新", command=update_record).pack(side=tk.LEFT, padx=2)
+tk.Button(btn_frame, text="刪除", command=delete_record).pack(side=tk.LEFT, padx=2)
+tk.Button(btn_frame, text="新增", command=add_record).pack(side=tk.LEFT, padx=2)
+tk.Button(btn_frame, text="搜尋", command=search_record).pack(side=tk.LEFT, padx=2)
+tk.Button(btn_frame, text=">>", command=next_record).pack(side=tk.LEFT, padx=2)
+
+
+# ==========================================
+# 5. 啟動程式前先準備資料
+# ==========================================
+load_data()
+show_record()
+
+root.mainloop()

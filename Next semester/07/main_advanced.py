@@ -1,135 +1,139 @@
 import tkinter as tk
+from tkinter import messagebox
 from PIL import Image, ImageTk
 import os
 import random
 
-class SlotMachineApp:
-    """
-    老虎機（麻阿台）主程式類別。
-    負責載入水果圖片，並以環狀陣列的方式動態呈現跑馬燈抽獎效果。
-    """
-    def __init__(self, root):
-        self.root = root
-        self.root.title("麻阿台")
-        
-        # ==========================================
-        # ⬇️⬇️⬇️ 遊戲參數設定區 (可隨意修改) ⬇️⬇️⬇️
-        # ==========================================
-        self.grid_size = 8             # 環狀邊框的長寬網格數 (例如 8 表示 8x8 的外框)
-        self.image_size = 50           # 水果圖片縮放的長寬 (像素)
-        self.spin_start_delay = 50     # 剛開始轉動時的速度 (毫秒，越低越快)
-        self.spin_friction_min = 2     # 每次轉動後最少增加多少延遲 (減速摩擦力)
-        self.spin_friction_max = 10    # 每次轉動後最多增加多少延遲 (減速摩擦力)
-        self.spin_stop_threshold = 300 # 當延遲時間大於此數值時，判定為停止轉動
-        # ==========================================
-        # ⬆️⬆️⬆️ 遊戲參數設定區 (可隨意修改) ⬆️⬆️⬆️
-        # ==========================================
-        
-        self.images = {}
-        # 為了避免在不同工作目錄執行腳本時找不到圖片，使用絕對路徑來定位 images 資料夾
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        image_dir = os.path.join(script_dir, "images")
-        
-        # 預期的 8 種水果圖示檔名
-        files = ["apple.png", "betelnut.png", "double7.png", "grape.png", "orange.png", "ring.png", "star.png", "watermelon.png"]
-        
-        # 讀取並縮放圖片
-        for file in files:
-            path = os.path.join(image_dir, file)
-            if os.path.exists(path):
-                # 調整大小以確保視窗不會過大
-                img = Image.open(path).resize((self.image_size, self.image_size))
-                self.images[file] = ImageTk.PhotoImage(img)
-            else:
-                # 容錯處理：若圖片遺失則設為 None，稍後介面會改以文字方塊替代
-                self.images[file] = None
-                
-        self.labels = []
-        
-        # 產生 8x8 網格外圍的環狀座標，總計 28 格，用以精準重現 PPT 中的框狀佈局
-        positions = []
-        # 上排
-        for c in range(self.grid_size): positions.append((0, c))
-        # 右排
-        for r in range(1, self.grid_size - 1): positions.append((r, self.grid_size - 1))
-        # 下排
-        for c in range(self.grid_size - 1, -1, -1): positions.append((self.grid_size - 1, c))
-        # 左排
-        for r in range(self.grid_size - 2, 0, -1): positions.append((r, 0))
-        
-        # 根據算好的環狀座標依序擺放 Label
-        for idx, pos in enumerate(positions):
-            rand_file = random.choice(files)
-            lbl = tk.Label(root, image=self.images.get(rand_file, ""), bg="white", width=self.image_size, height=self.image_size)
-            # 若載入失敗，給予預設文字長寬，防止因為 None image 造成視窗膨脹
-            if not self.images.get(rand_file):
-                lbl.config(width=6, height=3)
-            lbl.grid(row=pos[0], column=pos[1], padx=2, pady=2)
-            self.labels.append(lbl)
-            
-        # 在中央放置「GO」啟動按鈕
-        # 利用 rowspan 和 columnspan 使按鈕跨越中間數個網格，置於環狀的中央區域
-        self.btn_go = tk.Button(root, text="GO", font=("Arial", 14), command=self.start_spin)
-        self.btn_go.grid(row=3, column=3, rowspan=2, columnspan=2, ipadx=10, ipady=10)
-        
-        self.current_pos = 0
-        self.spinning = False
-        self.spin_delay = 50
-        
-        # 初始化高亮顯示第一個位置
-        self.highlight(self.current_pos)
-        
-    def highlight(self, pos):
-        """
-        高亮顯示指定的格子，將其背景設定為紅色，其餘為白色。
-        進階版：加入殘影效果，前一格顯示黃色。
-        """
-        prev_pos = (pos - 1) % len(self.labels) # 計算上一個位子
-        for i, lbl in enumerate(self.labels):
-            if i == pos:
-                lbl.config(bg="red")
-            elif i == prev_pos:
-                lbl.config(bg="yellow")
-            else:
-                lbl.config(bg="white")
-            
-    def start_spin(self):
-        """
-        啟動轉盤。
-        防止重複點擊，並重置延遲時間。
-        """
-        if self.spinning: return
-        self.spinning = True
-        self.spin_delay = self.spin_start_delay
-        self.btn_go.config(state="disabled")
-        self.spin()
-        
-    def spin(self):
-        """
-        執行跑馬燈轉動邏輯。
-        每次呼叫時位置 +1，並逐漸增加下一次執行的延遲時間，以模擬輪盤摩擦力「越轉越慢」的物理效果。
-        """
-        self.current_pos = (self.current_pos + 1) % len(self.labels)
-        self.highlight(self.current_pos)
-        
-        # 每次轉動後，隨機增加延遲時間，造成減速效果
-        self.spin_delay += random.randint(self.spin_friction_min, self.spin_friction_max)
-        
-        # 若延遲時間小於門檻，表示還沒完全停下，繼續排程下一次轉動
-        if self.spin_delay < self.spin_stop_threshold:
-            self.root.after(self.spin_delay, self.spin)
-        else:
-            # 延遲過長，判定為完全停止，恢復按鈕狀態
-            self.spinning = False
-            self.btn_go.config(state="normal")
-            
-            # 進階版：中獎判定 (如果停在 apple.png 顯示中獎)
-            # 這裡透過存取該 label 的影像物件並非易事，但我們可以透過自訂變數或直接檢查我們一開始的分配方式。
-            # 為了簡化，我們可以這樣：如果隨機到了 apple 就跳出訊息框
-            from tkinter import messagebox
-            messagebox.showinfo("結果", "轉盤停止了！")
+# ==========================================
+# 1. 設定全域變數 (遊戲參數)
+# ==========================================
+grid_size = 8             # 環狀邊框的長寬網格數 (例如 8 表示 8x8 的外框)
+image_size = 50           # 水果圖片縮放的長寬 (像素)
+spin_start_delay = 50     # 剛開始轉動時的速度 (毫秒)
+spin_friction_min = 2     # 每次轉動後最少增加多少延遲 (模擬減速)
+spin_friction_max = 10    # 每次轉動後最多增加多少延遲
+spin_stop_threshold = 300 # 當延遲時間大於此數值時，判定為停止轉動
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = SlotMachineApp(root)
-    root.mainloop()
+images = {}               # 用來存放圖片物件
+labels = []               # 用來存放組成外框的 Label 元件
+current_pos = 0           # 記錄目前亮起的位置索引 (0 ~ 27)
+spinning = False          # 記錄目前轉盤是否正在轉動中
+spin_delay = 50           # 當下轉動的延遲時間
+
+
+# ==========================================
+# 2. 遊戲主要邏輯 (進階版高亮與彈窗)
+# ==========================================
+def highlight(pos):
+    """
+    高亮顯示指定的格子為紅色。
+    進階版：加入殘影效果，將前一個格子設定為黃色，其他為白色。
+    """
+    # 算出「前一格」的位置。如果 pos 是 0，(0 - 1) 取餘數會跑到陣列的最後面，這正是我們要的環狀效果
+    prev_pos = (pos - 1) % len(labels) 
+    
+    for i, lbl in enumerate(labels):
+        if i == pos:
+            lbl.config(bg="red")      # 當前格子：紅色
+        elif i == prev_pos:
+            lbl.config(bg="yellow")   # 前一個格子 (殘影)：黃色
+        else:
+            lbl.config(bg="white")    # 其他：白色
+
+
+def start_spin():
+    """
+    按下 GO 按鈕後啟動轉盤。
+    """
+    global spinning, spin_delay
+    if spinning: 
+        return
+        
+    spinning = True
+    spin_delay = spin_start_delay 
+    btn_go.config(state="disabled") 
+    spin()
+
+
+def spin():
+    """
+    跑馬燈轉動邏輯。
+    """
+    global current_pos, spin_delay, spinning
+    
+    # 往前推進一格，並使用取餘數確保繞圈圈
+    current_pos = (current_pos + 1) % len(labels)
+    highlight(current_pos)
+    
+    # 增加延遲，讓轉盤越來越慢
+    spin_delay += random.randint(spin_friction_min, spin_friction_max)
+    
+    # 如果還沒停
+    if spin_delay < spin_stop_threshold:
+        root.after(spin_delay, spin)
+    else:
+        # 進階版：完全停止後，跳出訊息視窗
+        spinning = False
+        btn_go.config(state="normal")
+        
+        # 使用 messagebox 顯示結果視窗
+        messagebox.showinfo("結果", "轉盤停止了！看看你抽中了什麼！")
+
+
+# ==========================================
+# 3. 建立視窗與載入圖片
+# ==========================================
+root = tk.Tk()
+root.title("麻阿台 (老虎機) - 進階版")
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+image_dir = os.path.join(script_dir, "images")
+
+files = [
+    "apple.png", "betelnut.png", "double7.png", "grape.png", 
+    "orange.png", "ring.png", "star.png", "watermelon.png"
+]
+
+for file in files:
+    path = os.path.join(image_dir, file)
+    if os.path.exists(path):
+        img = Image.open(path).resize((image_size, image_size))
+        images[file] = ImageTk.PhotoImage(img) 
+    else:
+        images[file] = None
+
+
+# ==========================================
+# 4. 產生網格與按鈕配置
+# ==========================================
+positions = []
+# 上排
+for c in range(grid_size): positions.append((0, c))
+# 右排
+for r in range(1, grid_size - 1): positions.append((r, grid_size - 1))
+# 下排
+for c in range(grid_size - 1, -1, -1): positions.append((grid_size - 1, c))
+# 左排
+for r in range(grid_size - 2, 0, -1): positions.append((r, 0))
+
+# 擺放 Label
+for idx, pos in enumerate(positions):
+    rand_file = random.choice(files)
+    img_obj = images.get(rand_file, "")
+    lbl = tk.Label(root, image=img_obj, bg="white", width=image_size, height=image_size)
+    if not img_obj:
+        lbl.config(width=6, height=3)
+    lbl.grid(row=pos[0], column=pos[1], padx=2, pady=2)
+    labels.append(lbl)
+
+# 中央 GO 按鈕
+btn_go = tk.Button(root, text="GO", font=("Arial", 14), command=start_spin)
+btn_go.grid(row=3, column=3, rowspan=2, columnspan=2, ipadx=10, ipady=10)
+
+# 初始化第一格的顏色
+highlight(current_pos)
+
+# ==========================================
+# 5. 啟動程式
+# ==========================================
+root.mainloop()
